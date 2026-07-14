@@ -1,22 +1,22 @@
 # Implementation Roadmap
 
 ## Project Setup
-Initialize Rust server project with Cargo.toml and basic directory structure
-Add Rust dependencies: axum, connectrpc, tokio, serde, postgres, uuid, chrono, jwt
-Initialize Flutter project for the Dart client
-Add Flutter dependencies: google_sign_in, http, protobuf, connectrpc_dart
-Add build tools: protoc, bufbuild/buf for protocol buffer generation
-Set up Postgres database instance locally or via Docker
-Create database and user for the todo application
+- [x] Initialize Rust server project with Cargo.toml and basic directory structure
+- [x] Add Rust dependencies: axum, connectrpc, tokio, serde, postgres, uuid, chrono, jwt
+- [x] Initialize Flutter project for the Dart client
+- [x] Add Flutter dependencies: google_sign_in, http, protobuf, connectrpc_dart
+- [x] Add build tools: protoc, bufbuild/buf for protocol buffer generation
+- [ ] Set up Postgres database instance locally or via Docker
+- [ ] Create database and user for the todo application
 
 ## Shared API Definition
-Define protocol buffer message for Todo item with fields: id, title, description, completed, created_at, updated_at
-Define protocol buffer message for User with fields: id, google_id, email, name, created_at
-Define protocol buffer service TodoService with rpc methods: CreateTodo, GetTodo, ListTodos, UpdateTodo, DeleteTodo
-Define protocol buffer service AuthService with rpc method: Authenticate
-Define protocol buffer messages for requests and responses for all rpc methods
-Generate Rust server code from protocol buffers using connectrpc
-Generate Dart client code from protocol buffers using connectrpc_dart
+- [x] Define protocol buffer message for Todo item with fields: id, title, description, completed, created_at, updated_at
+- [ ] Define protocol buffer message for User with fields: id, google_id, email, name, created_at
+- [x] Define protocol buffer service TodoService with rpc methods: CreateTodo, GetTodo, ListTodos, UpdateTodo, DeleteTodo
+- [x] Define protocol buffer service AuthService with rpc method: Authenticate
+- [x] Define protocol buffer messages for requests and responses for all rpc methods
+- [ ] Generate Rust server code from protocol buffers using connectrpc
+- [ ] Generate Dart client code from protocol buffers using connectrpc_dart
 
 ## Server Implementation - Database
 Create database schema migration for users table with google_id as unique key
