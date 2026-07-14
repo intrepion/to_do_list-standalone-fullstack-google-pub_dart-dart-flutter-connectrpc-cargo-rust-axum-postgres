@@ -1,0 +1,12 @@
+version: v1
+name: github.com/intrepion/to_do_list-standalone-fullstack-google-pub_dart-dart-flutter-connectrpc-cargo-rust-axum-postgres
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/bufbuild/protovalidate
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT
+    - COMMENTS

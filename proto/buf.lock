@@ -1,0 +1,1 @@
+{"v":"v1","deps":[{"name":"buf.build/googleapis/googleapis","version":"v1.33.7"},{"name":"buf.build/bufbuild/protovalidate","version":"v0.11.1"}]}

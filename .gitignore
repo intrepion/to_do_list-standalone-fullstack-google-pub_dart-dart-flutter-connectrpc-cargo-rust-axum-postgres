@@ -56,7 +56,8 @@ $RECYCLE.BIN/
 __MACOSX/
 .AppleDouble
 .LSOverride
-Icon[]
+Icon[
+]
 
 # Resource forks
 ._*
@@ -77,7 +78,8 @@ Icon[]
 .file
 .disk_label*
 lost+found
-.HFS+ Private Directory Data[]
+.HFS+ Private Directory Data[
+]
 
 # Directories potentially created on remote AFP share
 .AppleDB
@@ -109,3 +111,35 @@ MobileBackups.trash
 tmbootpicker.efi
 
 #### END https://raw.githubusercontent.com/github/gitignore/refs/heads/main/Global/macOS.gitignore
+
+# Buf build tool (lock file is committed for reproducibility)
+# buf.lock
+
+# Generated protocol buffer files (ignore all files in gen directories)
+server/src/gen/*
+client/lib/src/gen/*
+# But keep .gitkeep files to track empty directories
+!server/src/gen/.gitkeep
+!client/lib/src/gen/.gitkeep
+
+# Rust target directory
+/target/
+
+# Flutter build outputs
+client/build/
+client/.dart_tool/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/

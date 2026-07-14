@@ -1,0 +1,22 @@
+version: v1
+plugins:
+  # Generate Rust code using prost for ConnectRPC
+  - plugin: buf.build/protocolbuffers/rust
+    out: server/src/gen
+    opt:
+      - prost
+      - prost-types
+      - derive
+      
+  # Generate Dart code using protoc and the Dart plugin
+  - plugin: buf.build/protocolbuffers/dart
+    out: client/lib/src/gen/proto
+    opt:
+      - grpc
+      
+  # Generate ConnectRPC Dart code
+  - plugin: buf.build/connectrpc/dart
+    out: client/lib/src/gen/connect
+    opt:
+      - package=to_do_list_client
+

@@ -1,0 +1,27 @@
+// Copyright 2026 Intrepion
+//
+// Package v1 contains the Auth service definition.
+
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "./gen/auth/v1;go_package";
+
+// AuthenticateRequest is the request for Authenticate.
+message AuthenticateRequest {
+  string google_token = 1;
+}
+
+// AuthenticateResponse is the response for Authenticate.
+message AuthenticateResponse {
+  string jwt_token = 1;
+  string user_id = 2;
+  string email = 3;
+  string name = 4;
+}
+
+// AuthService handles authentication operations.
+service AuthService {
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+}
