@@ -1,0 +1,14 @@
+version: v1
+plugins:
+  # Rust code generation
+  - plugin: buf.build/connectrpc/rust
+    out: server/src/generated
+    opt:
+      - emit_package
+      - no_server
+  
+  # Dart code generation
+  - plugin: buf.build/connectrpc/dart
+    out: client/lib/generated
+    opt:
+      - emit_package

@@ -1,0 +1,101 @@
+// Protocol Buffer definitions for Todo Application
+// This file defines the API contract between the Rust server and Dart client
+
+syntax = "proto3";
+
+package todo.v1;
+
+option go_package = "./;todo/v1";
+
+// Todo message defines a todo item
+message Todo {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  bool completed = 4;
+  string created_at = 5;
+  string updated_at = 6;
+  string user_id = 7;
+}
+
+// User message defines user information
+message User {
+  string id = 1;
+  string google_id = 2;
+  string email = 3;
+  string name = 4;
+  string created_at = 5;
+}
+
+// Request and response messages for TodoService
+message CreateTodoRequest {
+  string title = 1;
+  string description = 2;
+  string user_id = 3;
+}
+
+message CreateTodoResponse {
+  Todo todo = 1;
+}
+
+message GetTodoRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message GetTodoResponse {
+  Todo todo = 1;
+}
+
+message ListTodosRequest {
+  string user_id = 1;
+}
+
+message ListTodosResponse {
+  repeated Todo todos = 1;
+}
+
+message UpdateTodoRequest {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  bool completed = 4;
+  string user_id = 5;
+}
+
+message UpdateTodoResponse {
+  Todo todo = 1;
+}
+
+message DeleteTodoRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message DeleteTodoResponse {
+  bool success = 1;
+}
+
+// Request and response messages for AuthService
+message AuthenticateRequest {
+  string google_token = 1;
+}
+
+message AuthenticateResponse {
+  string jwt_token = 1;
+  User user = 2;
+}
+
+// TodoService defines the todo CRUD operations
+service TodoService {
+  rpc CreateTodo(CreateTodoRequest) returns (CreateTodoResponse);
+  rpc GetTodo(GetTodoRequest) returns (GetTodoResponse);
+  rpc ListTodos(ListTodosRequest) returns (ListTodosResponse);
+  rpc UpdateTodo(UpdateTodoRequest) returns (UpdateTodoResponse);
+  rpc DeleteTodo(DeleteTodoRequest) returns (DeleteTodoResponse);
+}
+
+// AuthService defines authentication operations
+service AuthService {
+  rpc Authenticate(AuthenticateRequest) returns (AuthenticateResponse);
+}

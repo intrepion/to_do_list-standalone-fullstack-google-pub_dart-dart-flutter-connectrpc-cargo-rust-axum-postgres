@@ -56,7 +56,8 @@ $RECYCLE.BIN/
 __MACOSX/
 .AppleDouble
 .LSOverride
-Icon[]
+Icon[
+]
 
 # Resource forks
 ._*
@@ -77,7 +78,8 @@ Icon[]
 .file
 .disk_label*
 lost+found
-.HFS+ Private Directory Data[]
+.HFS+ Private Directory Data[
+]
 
 # Directories potentially created on remote AFP share
 .AppleDB
@@ -109,3 +111,40 @@ MobileBackups.trash
 tmbootpicker.efi
 
 #### END https://raw.githubusercontent.com/github/gitignore/refs/heads/main/Global/macOS.gitignore
+
+#### Project-specific ignore rules
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Generated files
+server/src/generated/
+client/lib/generated/
+
+# Build artifacts
+server/target/
+client/build/
+client/.dart_tool/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Database files
+*.db
+*.sqlite
+
+# Log files
+*.log
+
+# Docker
+.docker/
+
+# Flutter specific
+client/.flutter-plugins
+client/.flutter-plugins-dependencies
+client/pubspec.lock

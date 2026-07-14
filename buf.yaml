@@ -1,0 +1,21 @@
+version: v1
+name: todo_app
+
+lint:
+  use:
+    - DEFAULT
+
+breaking:
+  use:
+    - FILE
+
+# Set up remote plugin for ConnectRPC
+plugins:
+  - name: connectrpc-rust
+    out: server/src/generated
+    opt: 
+      - emit_package
+  - name: connectrpc-dart
+    out: client/lib/generated
+    opt:
+      - emit_package

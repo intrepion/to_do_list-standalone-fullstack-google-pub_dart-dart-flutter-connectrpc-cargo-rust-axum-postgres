@@ -1,0 +1,43 @@
+[package]
+name = "todo_server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Web framework
+axum = "0.8"
+tokio = { version = "1.0", features = ["full"] }
+
+# ConnectRPC
+connectrpc = { version = "0.8", features = ["axum"] }
+prost = "0.12"
+prost-types = "0.12"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Database
+sqlx = { version = "0.7", features = ["postgres", "runtime-tokio", "uuid", "chrono"] }
+
+# UUID
+uuid = { version = "1.4", features = ["v4", "serde"] }
+
+# Date/Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# JWT
+jsonwebtoken = "9.0"
+
+# Environment variables
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CORS
+tower-http = { version = "0.5", features = ["cors"] }
+
+[build-dependencies]
+prost-build = "0.12"
