@@ -1,22 +1,25 @@
 //! Build script for protobuf generation
-//
-//! This project uses Buf (https://buf.build/) for protocol buffer code generation.
+//!
+//! This project uses connectrpc-build for protocol buffer code generation.
 //! Generated Rust code is in src/gen/ and is committed to the repository.
 //!
-//! To regenerate code:
+//! To regenerate code manually:
 //!   1. Install buf: brew install bufbuild/buf/buf
-//!   2. Install plugins: buf plugin install
-//!   3. Generate code: buf generate --template ../buf.gen.yaml ../proto
-//!   4. Or use: make gen
+//!   2. Use: buf generate --template ../buf.gen.yaml ../proto
+//!   3. Or use: make gen
 //!
-//! The build script watches the proto directory and will trigger a rebuild
-//! if proto files change, but the actual code generation must be done manually
-//! or via make commands.
+//! The build script uses connectrpc-build to generate code during cargo build.
 
 fn main() {
-    // Watch proto directory for changes to trigger cargo rebuild
-    println!("cargo:rerun-if-changed=../proto/");
-    
-    // Generated files are in src/gen/
-    println!("cargo:rerun-if-changed=src/gen/");
+    // Generate code for all proto files in the ../proto directory
+    connectrpc_build::Config::new()
+        .files(&[
+            "../proto/todo/v1/todo.proto",
+            "../proto/auth/v1/auth.proto",
+        ])
+        .includes(&["../proto/"])
+        .out_dir("src/gen/")
+        .include_file("_connectrpc.rs")
+        .compile()
+        .expect("Failed to generate protobuf code");
 }

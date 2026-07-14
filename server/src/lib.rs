@@ -7,3 +7,8 @@ pub mod config;
 pub mod models;
 pub mod server;
 pub mod services;
+
+// Include generated protobuf code
+pub mod gen {
+    include!("gen/_connectrpc.rs");
+}
