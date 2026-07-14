@@ -8,6 +8,15 @@ package auth.v1;
 
 option go_package = "./gen/auth/v1;go_package";
 
+// User represents a user in the system.
+message User {
+  string id = 1;
+  string google_id = 2;
+  string email = 3;
+  string name = 4;
+  string created_at = 5;
+}
+
 // AuthenticateRequest is the request for Authenticate.
 message AuthenticateRequest {
   string google_token = 1;
