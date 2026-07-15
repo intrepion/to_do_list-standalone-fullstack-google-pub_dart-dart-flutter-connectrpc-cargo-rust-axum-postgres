@@ -5,6 +5,7 @@
 
 pub mod config;
 pub mod models;
+pub mod repositories;
 pub mod server;
 pub mod services;
 
