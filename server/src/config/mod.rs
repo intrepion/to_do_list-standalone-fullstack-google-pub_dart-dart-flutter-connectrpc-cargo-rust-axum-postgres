@@ -17,6 +17,12 @@ pub struct AppConfig {
     pub environment: String,
     /// Log level (debug, info, warn, error)
     pub log_level: String,
+    /// Google OAuth 2.0 client ID
+    pub google_oauth_client_id: String,
+    /// Google OAuth 2.0 client secret
+    pub google_oauth_client_secret: String,
+    /// Google OAuth 2.0 redirect URI
+    pub google_oauth_redirect_uri: String,
 }
 
 impl Default for AppConfig {
@@ -27,6 +33,9 @@ impl Default for AppConfig {
             db_pool_max_size: 10,
             environment: "development".to_string(),
             log_level: "info".to_string(),
+            google_oauth_client_id: "".to_string(),
+            google_oauth_client_secret: "".to_string(),
+            google_oauth_redirect_uri: "http://localhost:8080/auth/callback".to_string(),
         }
     }
 }
@@ -48,6 +57,12 @@ impl AppConfig {
                 .unwrap_or_else(|_| Self::default().environment),
             log_level: env::var("LOG_LEVEL")
                 .unwrap_or_else(|_| Self::default().log_level),
+            google_oauth_client_id: env::var("GOOGLE_OAUTH_CLIENT_ID")
+                .unwrap_or_else(|_| Self::default().google_oauth_client_id),
+            google_oauth_client_secret: env::var("GOOGLE_OAUTH_CLIENT_SECRET")
+                .unwrap_or_else(|_| Self::default().google_oauth_client_secret),
+            google_oauth_redirect_uri: env::var("GOOGLE_OAUTH_REDIRECT_URI")
+                .unwrap_or_else(|_| Self::default().google_oauth_redirect_uri),
         };
 
         Ok(config)
