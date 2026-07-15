@@ -14,7 +14,7 @@ use tokio_postgres::NoTls;
 
 mod routes;
 
-use routes::todo_routes;
+use routes::{auth_routes, todo_routes};
 
 /// Application state shared across all handlers
 #[derive(Clone)]
@@ -50,6 +50,8 @@ pub async fn run_server(config: Arc<AppConfig>) -> Result<()> {
     let app = Router::new()
         // Health check endpoint
         .route("/health", axum::routing::get(|| async { "OK" }))
+        // Authentication routes
+        .nest("/api/v1/auth", auth_routes())
         // To-Do routes
         .nest("/api/v1/todos", todo_routes());
 
