@@ -55,8 +55,12 @@ dependencies:
   
   # For generating UUIDs
   uuid: ^4.4.2
+  protobuf: ^4.2.0
+  fixnum: ^1.1.1
+  path: ^1.9.1
 
 dev_dependencies:
+  protoc_plugin: ^22.5.0
   flutter_test:
     sdk: flutter
 
