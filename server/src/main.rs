@@ -1,5 +1,8 @@
 mod config;
+mod jwt;
+mod middleware;
 mod models;
+mod repositories;
 mod server;
 mod services;
 

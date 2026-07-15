@@ -5,6 +5,7 @@
 
 pub mod config;
 pub mod jwt;
+pub mod middleware;
 pub mod models;
 pub mod repositories;
 pub mod server;

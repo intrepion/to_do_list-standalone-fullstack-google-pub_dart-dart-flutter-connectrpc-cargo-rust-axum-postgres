@@ -1,13 +1,12 @@
 //! HTTP server module using Axum
 
 use crate::config::AppConfig;
+use crate::jwt::JwtManager;
 use anyhow::Result;
-use axum::{
-    routing::{delete, get, post, put},
-    Router,
-};
+use axum::Router;
 use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
+use chrono::Duration;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio_postgres::NoTls;
@@ -21,6 +20,7 @@ use routes::{auth_routes, todo_routes};
 pub struct AppState {
     pub config: Arc<AppConfig>,
     pub db_pool: Pool<PostgresConnectionManager<NoTls>>,
+    pub jwt_manager: JwtManager,
 }
 
 impl AppState {
@@ -37,7 +37,15 @@ impl AppState {
             .build(mgr)
             .await?;
 
-        Ok(Self { config, db_pool })
+        // Create JWT manager
+        let jwt_manager = JwtManager::with_claims(
+            config.jwt_secret.clone(),
+            Duration::hours(config.jwt_expires_in_hours as i64),
+            config.jwt_issuer.clone(),
+            config.jwt_audience.clone(),
+        );
+
+        Ok(Self { config, db_pool, jwt_manager })
     }
 }
 
