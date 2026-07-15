@@ -4,6 +4,7 @@
 //! including configuration, database models, and service implementations.
 
 pub mod config;
+pub mod jwt;
 pub mod models;
 pub mod repositories;
 pub mod server;
