@@ -140,6 +140,9 @@ client/.dart_tool/
 .env.local
 .env.*.local
 
+# SQLx database revision files
+.sqlx/
+
 # Logs
 *.log
 logs/

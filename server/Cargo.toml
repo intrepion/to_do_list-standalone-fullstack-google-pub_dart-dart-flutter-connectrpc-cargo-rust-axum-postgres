@@ -45,7 +45,11 @@ anyhow = "1.0"
 thiserror = "1.0"
 
 [dev-dependencies]
+# Database migrations tool (SQLx for compile-time checked SQL)
+# For migrations, install sqlx-cli globally: cargo install sqlx-cli
+# Or use the Makefile targets which handle this automatically
 tower-http = { version = "0.5", features = ["trace"] }
+sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-native-tls", "uuid", "chrono"] }
 
 [build-dependencies]
 connectrpc-build = "0.8"
