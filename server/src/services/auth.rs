@@ -1,14 +1,19 @@
 //! Authentication service for Google OAuth token verification
 
 use anyhow::{anyhow, Context, Result};
+use bb8::Pool;
+use bb8_postgres::PostgresConnectionManager;
 use connectrpc::{RequestContext, ServiceRequest, ServiceResult};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio_postgres::NoTls;
 
 use crate::gen::auth::v1::{AuthenticateRequest, AuthenticateResponse, OwnedAuthenticateResponseView};
 use crate::jwt::{UserClaims, JwtManager};
 use crate::gen::auth::v1::AuthService as ConnectAuthService;
+use crate::models::user::CreateUserRequest;
+use crate::repositories::user::UserRepository;
 
 /// Google token verification response
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,27 +68,42 @@ pub struct AuthService {
     client: Client,
     client_id: String,
     jwt_manager: JwtManager,
+    db_pool: Pool<PostgresConnectionManager<NoTls>>,
+    user_repository: UserRepository,
 }
 
 impl AuthService {
-    /// Create a new authentication service with JWT manager
-    pub fn new(client_id: String, jwt_manager: JwtManager) -> Self {
+    /// Create a new authentication service with JWT manager and database pool
+    pub fn new(
+        client_id: String,
+        jwt_manager: JwtManager,
+        db_pool: Pool<PostgresConnectionManager<NoTls>>,
+    ) -> Self {
         Self {
             client: Client::new(),
             client_id,
             jwt_manager,
+            db_pool,
+            user_repository: UserRepository::new(),
         }
     }
 
     /// Create a new authentication service without JWT manager (for backward compatibility)
     /// This is useful for token verification without JWT signing
-    pub fn new_for_verification(client_id: String) -> Self {
+    /// Note: This creates a dummy pool that will fail on actual use, but is fine for
+    /// the verify_token endpoint which doesn't need DB access
+    pub async fn new_for_verification(client_id: String) -> Self {
         // Create a dummy JWT manager - this service won't be used for JWT signing
         let jwt_manager = JwtManager::new("dummy-secret".to_string(), chrono::Duration::hours(1));
+        // Create a dummy pool - this service won't be used for database operations
+        let mgr = PostgresConnectionManager::new_from_stringlike("", NoTls).unwrap();
+        let db_pool = bb8::Pool::builder().build(mgr).await.unwrap();
         Self {
             client: Client::new(),
             client_id,
             jwt_manager,
+            db_pool,
+            user_repository: UserRepository::new(),
         }
     }
 
@@ -200,6 +220,50 @@ impl AuthService {
             },
         }
     }
+
+    /// Check if user exists in database, create if not
+    async fn find_or_create_user(&self, token_info: &GoogleTokenInfo) -> Result<String> {
+        // Get a connection from the pool
+        let mut conn = self
+            .db_pool
+            .get()
+            .await
+            .context("Failed to get database connection")?;
+
+        // Try to find existing user by Google ID
+        match self
+            .user_repository
+            .find_by_google_id(&mut conn, &token_info.sub)
+            .await?
+        {
+            Some(user) => {
+                log::debug!(
+                    "Found existing user in database: {} ({})",
+                    user.email, user.google_id
+                );
+                Ok(user.id.to_string())
+            }
+            None => {
+                // User doesn't exist, create a new one
+                log::info!(
+                    "Creating new user in database: {} ({})",
+                    token_info.email, token_info.sub
+                );
+                let display_name = token_info.name.clone().unwrap_or_else(|| "".to_string());
+                let create_request = CreateUserRequest {
+                    google_id: token_info.sub.clone(),
+                    email: token_info.email.clone(),
+                    display_name,
+                };
+                let user = self
+                    .user_repository
+                    .create(&mut conn, create_request)
+                    .await
+                    .context("Failed to create user")?;
+                Ok(user.id.to_string())
+            }
+        }
+    }
 }
 
 /// Implement the ConnectRPC AuthService trait for our AuthService
@@ -208,7 +272,8 @@ impl ConnectAuthService for AuthService {
     /// Handle the Authenticate RPC.
     /// 
     /// This method exchanges a Google OAuth token for a JWT token.
-    /// It verifies the Google token, then creates and returns a JWT token for the user.
+    /// It verifies the Google token, stores user info on first login,
+    /// then creates and returns a JWT token for the user.
     async fn authenticate<'a>(
         &'a self,
         _ctx: RequestContext,
@@ -228,6 +293,18 @@ impl ConnectAuthService for AuthService {
                     token_info.sub
                 );
 
+                // Check if user exists in database, create if not
+                let user_id = match self.find_or_create_user(&token_info).await {
+                    Ok(id) => id,
+                    Err(e) => {
+                        log::error!("Failed to find or create user: {}", e);
+                        return Err(connectrpc::ConnectError::internal(format!(
+                            "Database error: {}",
+                            e
+                        )));
+                    }
+                };
+
                 // Create custom claims with user information from Google
                 let custom_claims = UserClaims::new(
                     Some(token_info.email.clone()),
@@ -236,21 +313,21 @@ impl ConnectAuthService for AuthService {
                 );
 
                 // Sign a JWT token for the user
-                // Use Google ID as the subject (user ID in our system)
+                // Use database user ID as the subject
                 let jwt_token = self
                     .jwt_manager
-                    .sign(token_info.sub.clone(), custom_claims)
+                    .sign(user_id.clone(), custom_claims)
                     .map_err(|e| {
                         log::error!("Failed to sign JWT token: {}", e);
                         connectrpc::ConnectError::internal(e.to_string())
                     })?;
 
-                log::debug!("JWT token created for user: {}", token_info.sub);
+                log::debug!("JWT token created for user: {}", user_id);
 
                 // Return the JWT token and user information
                 let response = AuthenticateResponse {
                     jwt_token,
-                    user_id: token_info.sub,
+                    user_id,
                     email: token_info.email,
                     name: token_info.name.unwrap_or_default(),
                     ..Default::default()
@@ -276,11 +353,15 @@ impl ConnectAuthService for AuthService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bb8_postgres::PostgresConnectionManager;
+    use tokio_postgres::NoTls;
 
-    #[test]
-    fn test_auth_service_creation() {
+    #[tokio::test]
+    async fn test_auth_service_creation() {
         let jwt_manager = JwtManager::new("test-secret".to_string(), chrono::Duration::hours(1));
-        let service = AuthService::new("test-client-id".to_string(), jwt_manager);
+        let mgr = PostgresConnectionManager::new_from_stringlike("", NoTls).unwrap();
+        let db_pool = Pool::builder().build(mgr).await.unwrap();
+        let service = AuthService::new("test-client-id".to_string(), jwt_manager, db_pool);
         assert_eq!(service.client_id, "test-client-id");
     }
 }

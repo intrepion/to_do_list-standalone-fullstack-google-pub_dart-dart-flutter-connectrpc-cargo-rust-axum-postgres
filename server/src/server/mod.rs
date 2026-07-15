@@ -61,6 +61,7 @@ pub async fn run_server(config: Arc<AppConfig>) -> Result<()> {
     let auth_service = Arc::new(AuthService::new(
         config.google_oauth_client_id.clone(),
         state.jwt_manager.clone(),
+        state.db_pool.clone(),
     ));
 
     // Create ConnectRPC router and add AuthService
