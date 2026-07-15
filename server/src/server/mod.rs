@@ -1,12 +1,15 @@
 //! HTTP server module using Axum
 
 use crate::config::AppConfig;
+use crate::gen::auth::v1::AuthServiceRegisterMarker;
 use crate::jwt::JwtManager;
+use crate::services::auth::AuthService;
 use anyhow::Result;
-use axum::Router;
+use axum::Router as AxumRouter;
 use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
 use chrono::Duration;
+use connectrpc::{ConnectRpcService, Router as ConnectRouter};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio_postgres::NoTls;
@@ -54,21 +57,39 @@ pub async fn run_server(config: Arc<AppConfig>) -> Result<()> {
     // Create application state
     let state = Arc::new(AppState::new(config.clone()).await?);
 
-    // Build the router
-    let app = Router::new()
+    // Create AuthService for ConnectRPC
+    let auth_service = Arc::new(AuthService::new(
+        config.google_oauth_client_id.clone(),
+        state.jwt_manager.clone(),
+    ));
+
+    // Create ConnectRPC router and add AuthService
+    let connect_router = ConnectRouter::new()
+        .add_service::<crate::services::auth::AuthService, AuthServiceRegisterMarker>(auth_service);
+
+    // Build the Axum router
+    let app = AxumRouter::new()
         // Health check endpoint
         .route("/health", axum::routing::get(|| async { "OK" }))
-        // Authentication routes
+        // Authentication routes (REST)
         .nest("/api/v1/auth", auth_routes())
-        // To-Do routes
+        // To-Do routes (REST)
         .nest("/api/v1/todos", todo_routes());
 
     // Add shared state
     let app = app.with_state(state);
 
+    // Create ConnectRpcService to handle gRPC-style requests
+    // This will serve as a fallback service for ConnectRPC endpoints
+    let connect_service = ConnectRpcService::new(connect_router);
+
     // Start the server
     let addr: SocketAddr = config.server_addr.parse()?;
     log::info!("Server listening on {}", addr);
+
+    // Use ConnectRpcService as a fallback for gRPC-style requests
+    // This allows both REST (via Axum) and gRPC (via ConnectRPC) endpoints to work
+    let app = app.fallback_service(connect_service);
 
     axum::serve(
         tokio::net::TcpListener::bind(&addr).await?,

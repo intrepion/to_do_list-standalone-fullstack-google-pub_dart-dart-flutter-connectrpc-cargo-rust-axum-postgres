@@ -6,6 +6,11 @@ mod repositories;
 mod server;
 mod services;
 
+// Include generated protobuf code
+mod gen {
+    include!("gen/_connectrpc.rs");
+}
+
 use anyhow::Result;
 use config::AppConfig;
 use server::run_server;

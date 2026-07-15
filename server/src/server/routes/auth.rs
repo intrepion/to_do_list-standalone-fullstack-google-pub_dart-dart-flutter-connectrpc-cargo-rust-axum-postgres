@@ -48,9 +48,11 @@ async fn verify_google_token(
     log::debug!("Verifying Google token");
 
     // Create auth service with client ID from config
-    let auth_service = AuthService::new(state.config.google_oauth_client_id.clone());
+    // Use new_for_verification since we don't need JWT signing for this endpoint
+    let auth_service = AuthService::new_for_verification(state.config.google_oauth_client_id.clone());
 
     // Verify the token
+    // Use the existing auth service with dummy JWT manager (not used for verification)
     let response = auth_service.verify_and_response(&request.id_token).await;
 
     // Log the result

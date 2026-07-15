@@ -1,9 +1,14 @@
 //! Authentication service for Google OAuth token verification
 
 use anyhow::{anyhow, Context, Result};
+use connectrpc::{RequestContext, ServiceRequest, ServiceResult};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::gen::auth::v1::{AuthenticateRequest, AuthenticateResponse, OwnedAuthenticateResponseView};
+use crate::jwt::{UserClaims, JwtManager};
+use crate::gen::auth::v1::AuthService as ConnectAuthService;
 
 /// Google token verification response
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,14 +62,28 @@ pub struct TokenVerificationResponse {
 pub struct AuthService {
     client: Client,
     client_id: String,
+    jwt_manager: JwtManager,
 }
 
 impl AuthService {
-    /// Create a new authentication service
-    pub fn new(client_id: String) -> Self {
+    /// Create a new authentication service with JWT manager
+    pub fn new(client_id: String, jwt_manager: JwtManager) -> Self {
         Self {
             client: Client::new(),
             client_id,
+            jwt_manager,
+        }
+    }
+
+    /// Create a new authentication service without JWT manager (for backward compatibility)
+    /// This is useful for token verification without JWT signing
+    pub fn new_for_verification(client_id: String) -> Self {
+        // Create a dummy JWT manager - this service won't be used for JWT signing
+        let jwt_manager = JwtManager::new("dummy-secret".to_string(), chrono::Duration::hours(1));
+        Self {
+            client: Client::new(),
+            client_id,
+            jwt_manager,
         }
     }
 
@@ -183,13 +202,85 @@ impl AuthService {
     }
 }
 
+/// Implement the ConnectRPC AuthService trait for our AuthService
+#[allow(refining_impl_trait)]
+impl ConnectAuthService for AuthService {
+    /// Handle the Authenticate RPC.
+    /// 
+    /// This method exchanges a Google OAuth token for a JWT token.
+    /// It verifies the Google token, then creates and returns a JWT token for the user.
+    async fn authenticate<'a>(
+        &'a self,
+        _ctx: RequestContext,
+        request: ServiceRequest<'_, AuthenticateRequest>,
+    ) -> ServiceResult<OwnedAuthenticateResponseView> {
+        log::debug!("Authenticating user with Google token");
+
+        // Extract the Google token from the request
+        let google_token = request.to_owned_message().google_token;
+
+        // Verify the Google token
+        match self.verify_token(&google_token).await {
+            Ok(token_info) => {
+                log::info!(
+                    "Google token verified for user: {} ({})",
+                    token_info.email,
+                    token_info.sub
+                );
+
+                // Create custom claims with user information from Google
+                let custom_claims = UserClaims::new(
+                    Some(token_info.email.clone()),
+                    token_info.name.clone(),
+                    Some(token_info.sub.clone()),
+                );
+
+                // Sign a JWT token for the user
+                // Use Google ID as the subject (user ID in our system)
+                let jwt_token = self
+                    .jwt_manager
+                    .sign(token_info.sub.clone(), custom_claims)
+                    .map_err(|e| {
+                        log::error!("Failed to sign JWT token: {}", e);
+                        connectrpc::ConnectError::internal(e.to_string())
+                    })?;
+
+                log::debug!("JWT token created for user: {}", token_info.sub);
+
+                // Return the JWT token and user information
+                let response = AuthenticateResponse {
+                    jwt_token,
+                    user_id: token_info.sub,
+                    email: token_info.email,
+                    name: token_info.name.unwrap_or_default(),
+                    ..Default::default()
+                };
+                let view = OwnedAuthenticateResponseView::from_owned(&response)
+                    .map_err(|e| {
+                        log::error!("Failed to create response view: {}", e);
+                        connectrpc::ConnectError::internal(e.to_string())
+                    })?;
+                Ok(connectrpc::Response::new(view))
+            }
+            Err(e) => {
+                log::warn!("Google token verification failed: {}", e);
+                Err(connectrpc::ConnectError::invalid_argument(format!(
+                    "Invalid Google token: {}",
+                    e
+                )))
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_auth_service_creation() {
-        let service = AuthService::new("test-client-id".to_string());
+        let jwt_manager = JwtManager::new("test-secret".to_string(), chrono::Duration::hours(1));
+        let service = AuthService::new("test-client-id".to_string(), jwt_manager);
         assert_eq!(service.client_id, "test-client-id");
     }
 }
