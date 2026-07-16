@@ -1,0 +1,25 @@
+// To-Do List API v1
+// Protocol Buffer definitions for ConnectRPC
+
+syntax = "proto3";
+
+package todo.v1;
+
+option go_package = "./todo/v1";
+
+// Common messages
+
+message Empty {}
+
+// Health check messages
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+}
+
+// Placeholder for future service definitions
+// Services will be added in subsequent MVPs:
+// - AuthService (MVP 2)
+// - TodoService (MVP 4)
+// - ProfileService (MVP 7)

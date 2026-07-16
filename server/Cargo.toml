@@ -1,0 +1,37 @@
+[package]
+name = "todo-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web framework
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+
+# ConnectRPC
+connectrpc = "0.4"
+prost = "0.12"
+
+# Database
+sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-native-tls"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Environment variables
+dotenv = "0.15"
+
+# OAuth 2.0
+oauth2 = "4.0"
+
+# JWT handling
+jsonwebtoken = "9.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[build-dependencies]
+connectrpc-build = "0.4"
+prost-build = "0.12"
